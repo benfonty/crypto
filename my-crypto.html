@@ -1,0 +1,57 @@
+<link rel="import" href="bower_components/polymer/polymer-element.html" />
+<link rel="import" href="bower_components/iron-ajax/iron-ajax.html" />
+
+<dom-module id="my-crypto">
+    <template>
+        <h2>Hello</h2>
+        <iron-ajax id="coinbase" jandle-as="json" on-response="_handleResponse">
+        </iron-ajax>
+    </template>
+    <script>
+        class Crypto extends Polymer.Element {
+            static get is() { return "my-crypto"; }
+            static get properties() {
+                return {
+                    currencies: {
+                        type: Array,
+                        value: [
+                            {                                
+                                code: "BTC",
+                                name: "BitCoin"                            
+                            },
+                            {                                
+                                code: "ETH",
+                                name: "Ethereum"                            
+                            },
+                            {                                
+                                code: "LTC",
+                                name: "LiteCoin"                            
+                            }
+                        ]
+                    }
+                };
+            }
+
+            ready() {
+                super.ready();
+                Polymer.RenderStatus.afterNextRender(this,function() {
+                    this._getCurrencyData();
+                });
+            }
+
+            _getCurrencyData() {
+                let ajax = this.$.coinbase;
+                let currencies = this.currencies;
+                currencies.forEach((element, key) => {
+                    ajax.url = 'https://api.coinbase.com/v2/prices/' + element.code + "-USD/spot";
+                    ajax.generateRequest();
+                });
+            }
+
+            _handleResponse(reponse) {
+                console.log(reponse);
+            }
+        }
+        window.customElements.define(Crypto.is, Crypto);
+    </script>
+</dom-module>
