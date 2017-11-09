@@ -116,10 +116,8 @@
                 let code = data.url.substring(url_length, url_length + 3);
                 let label = [];
                 let price = [];
-                data.__data.response.data.prices.forEach(element => {
-                    label.push(element.time);
-                    price.push(element.price);
-                });
+                label = data.__data.response.data.prices.map(element => element.time).reverse();
+                price = data.__data.response.data.prices.map(element => element.price).reverse();
                 this._generateLineChart(label, price, code);
             }
 
