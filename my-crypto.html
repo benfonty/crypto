@@ -1,11 +1,13 @@
 <link rel="import" href="bower_components/polymer/polymer-element.html" />
 <link rel="import" href="bower_components/iron-ajax/iron-ajax.html" />
 <link rel="import" href="bower_components/paper-spinner/paper-spinner-lite.html" />
-
+<script src="bower_components/chart.js/dist/Chart.js"></script>
 <dom-module id="my-crypto">
     <template>
         <h2>Hello</h2>
         <iron-ajax id="coinbase" handle-as="json" on-response="_handleResponse" loading="{{loading}}">
+        </iron-ajax>
+        <iron-ajax id="coinbase_history" handle-as="json" on-response="_handleResponseHistory" loading="{{loadingHistory}}">
         </iron-ajax>
         <div hidden$="[[!loading]]">
             <paper-spinner-lite active="{{loading}}"></paper-spinner-lite>
@@ -16,6 +18,14 @@
                 <li>[[item.name]] : [[item.price]]</li>
             </template>
         </ul>
+        <div hidden$="[[!loadingHistory]]">
+            <paper-spinner-lite active="{{loadingHistory}}"></paper-spinner-lite>
+        </div>
+        <div hidden$="[[loadingHistory]]" style="width:100%;max-width:700px; margin:0 auto">
+            <canvas height="2" width="4" id="canvas">
+
+            </canvas>
+        </div>
     </template>
     <script>
         class Crypto extends Polymer.Element {
@@ -46,28 +56,49 @@
                         type: Boolean,
                         notify: true,
                         value: false
+                    },
+                    loadingHistory: {
+                        type: Boolean,
+                        notify: true,
+                        value: false
+                    },
+                    thechart: {
+
                     }
                 };
             }
 
             constructor() {
                 super();
-                this.URL_BEGIN = 'https://api.coinbase.com/v2/prices/';
-                this.URL_END = "-USD/spot";
+                this.URL_SPOT = {
+                    begin: 'https://api.coinbase.com/v2/prices/',
+                    end: "-USD/spot"
+                };
+                this.URL_HISTORY = {
+                    begin: 'https://api.coinbase.com/v2/prices/',
+                    end: "-USD/historic?period=week"
+                };
             }
 
             ready() {
                 super.ready();
                 Polymer.RenderStatus.afterNextRender(this, function () {
                     this._getCurrencyData();
+                    this._getHistory(this.currencies[0].code);
                 });
+            }
+
+            _getHistory(code) {
+                let ajax = this.$.coinbase_history;
+                ajax.url = this.URL_HISTORY.begin + code + this.URL_HISTORY.end;
+                ajax.generateRequest();
             }
 
             _getCurrencyData() {
                 let ajax = this.$.coinbase;
                 let currencies = this.currencies;
                 currencies.forEach((element, key) => {
-                    ajax.url = this.URL_BEGIN + element.code + this.URL_END;
+                    ajax.url = this.URL_SPOT.begin + element.code + this.URL_SPOT.end;
                     ajax.generateRequest();
                 });
             }
@@ -76,8 +107,67 @@
                 this._computCurrencyPrice(reponse.detail);
             }
 
+            _handleResponseHistory(reponse) {
+                this._computGraph(reponse.detail);
+            }
+
+            _computGraph(data) {
+                let url_length = this.URL_HISTORY.begin.length;
+                let code = data.url.substring(url_length, url_length + 3);
+                let label = [];
+                let price = [];
+                data.__data.response.data.prices.forEach(element => {
+                    label.push(element.time);
+                    price.push(element.price);
+                });
+                this._generateLineChart(label, price, code);
+            }
+
+            _generateLineChart(label, price, labelName) {
+                if (this.thechart !== undefined) {
+                    this.thechart.destroy();
+                }
+                let ctx = this.$.canvas.getContext('2d');
+                this.thechart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: label,
+                        datasets: [
+                            {
+                                pointRadius: 0,
+                                label: labelName,
+                                backgroundColor: 'rgba(111,124,186,0.1)',
+                                borderColor: 'rgba(111,124,186,1)',
+                                borderWidth: 2,
+                                data: price
+                            }
+                        ]
+                    },
+                    options: {
+                        animation: false,
+                        tooltips: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        scales: {
+                            xAxes: [{
+                                gridlines: {
+                                    display: false
+                                }
+                            }],
+                            yAxes: [{
+                                gridlines: {
+                                    display: false
+                                }
+                            }]
+                        }
+                    }
+                });
+
+            }
+
             _computCurrencyPrice(data) {
-                let url_length = this.URL_BEGIN.length;
+                let url_length = this.URL_SPOT.begin.length;
                 let code = data.url.substring(url_length, url_length + 3);
                 let index = this.currencies.map(e => e.code).indexOf(code);
                 if (index != -1) {
