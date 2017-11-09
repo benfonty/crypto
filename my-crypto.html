@@ -1,12 +1,17 @@
 <link rel="import" href="bower_components/polymer/polymer-element.html" />
 <link rel="import" href="bower_components/iron-ajax/iron-ajax.html" />
+<link rel="import" href="bower_components/paper-spinner/paper-spinner-lite.html" />
 
 <dom-module id="my-crypto">
     <template>
         <h2>Hello</h2>
-        <iron-ajax id="coinbase" handle-as="json" on-response="_handleResponse">
+        <iron-ajax id="coinbase" handle-as="json" on-response="_handleResponse" loading="{{loading}}">
         </iron-ajax>
-        <ul>
+        <div hidden$="[[!loading]]">
+            <paper-spinner-lite active="{{loading}}"></paper-spinner-lite>
+        </div>
+
+        <ul hidden$="[[loading]]">
             <template is="dom-repeat" items="[[currencies]]">
                 <li>[[item.name]] : [[item.price]]</li>
             </template>
@@ -36,6 +41,11 @@
                                 price: 0
                             }
                         ]
+                    },
+                    loading: {
+                        type: Boolean,
+                        notify: true,
+                        value: false
                     }
                 };
             }
