@@ -6,6 +6,11 @@
         <h2>Hello</h2>
         <iron-ajax id="coinbase" handle-as="json" on-response="_handleResponse">
         </iron-ajax>
+        <ul>
+            <template is="dom-repeat" items="[[currencies]]">
+                <li>[[item.name]] : [[item.price]]</li>
+            </template>
+        </ul>
     </template>
     <script>
         class Crypto extends Polymer.Element {
@@ -15,26 +20,35 @@
                     currencies: {
                         type: Array,
                         value: [
-                            {                                
+                            {
                                 code: "BTC",
-                                name: "BitCoin"                            
+                                name: "BitCoin",
+                                price: 0
                             },
-                            {                                
+                            {
                                 code: "ETH",
-                                name: "Ethereum"                            
+                                name: "Ethereum",
+                                price: 0
                             },
-                            {                                
+                            {
                                 code: "LTC",
-                                name: "LiteCoin"                            
+                                name: "LiteCoin",
+                                price: 0
                             }
                         ]
                     }
                 };
             }
 
+            constructor() {
+                super();
+                this.URL_BEGIN = 'https://api.coinbase.com/v2/prices/';
+                this.URL_END = "-USD/spot";
+            }
+
             ready() {
                 super.ready();
-                Polymer.RenderStatus.afterNextRender(this,function() {
+                Polymer.RenderStatus.afterNextRender(this, function () {
                     this._getCurrencyData();
                 });
             }
@@ -43,13 +57,23 @@
                 let ajax = this.$.coinbase;
                 let currencies = this.currencies;
                 currencies.forEach((element, key) => {
-                    ajax.url = 'https://api.coinbase.com/v2/prices/' + element.code + "-USD/spot";
+                    ajax.url = this.URL_BEGIN + element.code + this.URL_END;
                     ajax.generateRequest();
                 });
             }
 
             _handleResponse(reponse) {
-                console.log(reponse);
+                this._computCurrencyPrice(reponse.detail);
+            }
+
+            _computCurrencyPrice(data) {
+                let url_length = this.URL_BEGIN.length;
+                let code = data.url.substring(url_length, url_length + 3);
+                let index = this.currencies.map(e => e.code).indexOf(code);
+                if (index != -1) {
+                    let price = parseFloat(data.__data.response.data.amount);
+                    this.set('currencies.' + index + '.price', price);
+                }
             }
         }
         window.customElements.define(Crypto.is, Crypto);
