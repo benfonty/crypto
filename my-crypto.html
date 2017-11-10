@@ -5,9 +5,9 @@
 <dom-module id="my-crypto">
     <template>
         <h2>Hello</h2>
-        <iron-ajax id="coinbase" handle-as="json" on-response="_handleResponse" loading="{{loading}}">
+        <iron-ajax id="coinbase" handle-as="json" loading="{{loading}}">
         </iron-ajax>
-        <iron-ajax id="coinbase_history" handle-as="json" on-response="_handleResponseHistory" loading="{{loadingHistory}}">
+        <iron-ajax id="coinbase_history" handle-as="json" loading="{{loadingHistory}}">
         </iron-ajax>
         <div hidden$="[[!loading]]">
             <paper-spinner-lite active="{{loading}}"></paper-spinner-lite>
@@ -91,7 +91,10 @@
             _getHistory(code) {
                 let ajax = this.$.coinbase_history;
                 ajax.url = this.URL_HISTORY.begin + code + this.URL_HISTORY.end;
-                ajax.generateRequest();
+                let self = this;
+                ajax.generateRequest().completes.then((response) => {
+                        self._computGraph(response, code)
+                    });
             }
 
             _getCurrencyData() {
@@ -99,25 +102,16 @@
                 let currencies = this.currencies;
                 currencies.forEach((element, key) => {
                     ajax.url = this.URL_SPOT.begin + element.code + this.URL_SPOT.end;
-                    ajax.generateRequest();
+                    let self = this;
+                    ajax.generateRequest().completes.then((response) => {
+                        self._computCurrencyPrice(response, element.code)
+                    });
                 });
             }
 
-            _handleResponse(reponse) {
-                this._computCurrencyPrice(reponse.detail);
-            }
-
-            _handleResponseHistory(reponse) {
-                this._computGraph(reponse.detail);
-            }
-
-            _computGraph(data) {
-                let url_length = this.URL_HISTORY.begin.length;
-                let code = data.url.substring(url_length, url_length + 3);
-                let label = [];
-                let price = [];
-                label = data.__data.response.data.prices.map(element => element.time).reverse();
-                price = data.__data.response.data.prices.map(element => element.price).reverse();
+            _computGraph(data, code) {
+                let label = data.__data.response.data.prices.map(element => element.time).reverse();
+                let price = data.__data.response.data.prices.map(element => element.price).reverse();
                 this._generateLineChart(label, price, code);
             }
 
@@ -164,9 +158,7 @@
 
             }
 
-            _computCurrencyPrice(data) {
-                let url_length = this.URL_SPOT.begin.length;
-                let code = data.url.substring(url_length, url_length + 3);
+            _computCurrencyPrice(data, code) {
                 let index = this.currencies.map(e => e.code).indexOf(code);
                 if (index != -1) {
                     let price = parseFloat(data.__data.response.data.amount);
