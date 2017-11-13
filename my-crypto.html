@@ -3,6 +3,7 @@
 <link rel="import" href="bower_components/paper-spinner/paper-spinner-lite.html" />
 <script src="bower_components/chart.js/dist/Chart.js"></script>
 <script src="bower_components/moment/min/moment-with-locales.min.js"></script>
+<link rel="import" href="bower_components/paper-button/paper-button.html" />
 <dom-module id="my-crypto">
     <template>
         <h2>Hello</h2>
@@ -16,7 +17,11 @@
 
         <ul hidden$="[[loading]]">
             <template is="dom-repeat" items="[[currencies]]">
-                <li>[[item.name]] : [[item.price]]</li>
+                <li>
+                    <paper-button noink on-click="_onClick" data-item$="[[item.code]]">
+                        [[item.name]] : [[item.price]]
+                    </paper-button>
+                </li>
             </template>
         </ul>
         <div hidden$="[[!loadingHistory]]">
@@ -89,13 +94,17 @@
                 });
             }
 
+            _onClick(e) {
+                this._getHistory(e.target.dataset.item);
+            }
+
             _getHistory(code) {
                 let ajax = this.$.coinbase_history;
                 ajax.url = this.URL_HISTORY.begin + code + this.URL_HISTORY.end;
                 let self = this;
                 ajax.generateRequest().completes.then((response) => {
-                        self._computGraph(response, code)
-                    });
+                    self._computGraph(response, code)
+                });
             }
 
             _getCurrencyData() {
@@ -112,7 +121,7 @@
 
             _computeDateTime(datestring) {
                 if (datestring) {
-                    return moment(datestring,"YYYY-MM-DDThh:mm:ssZ").format("YYYY-MM-DD hh:mm");
+                    return moment(datestring, "YYYY-MM-DDThh:mm:ssZ").format("YYYY-MM-DD hh:mm");
                 }
                 return datestring;
             }
