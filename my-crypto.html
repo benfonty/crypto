@@ -2,6 +2,7 @@
 <link rel="import" href="bower_components/iron-ajax/iron-ajax.html" />
 <link rel="import" href="bower_components/paper-spinner/paper-spinner-lite.html" />
 <script src="bower_components/chart.js/dist/Chart.js"></script>
+<script src="bower_components/moment/min/moment-with-locales.min.js"></script>
 <dom-module id="my-crypto">
     <template>
         <h2>Hello</h2>
@@ -109,8 +110,15 @@
                 });
             }
 
+            _computeDateTime(datestring) {
+                if (datestring) {
+                    return moment(datestring,"YYYY-MM-DDThh:mm:ssZ").format("YYYY-MM-DD hh:mm");
+                }
+                return datestring;
+            }
+
             _computGraph(data, code) {
-                let label = data.__data.response.data.prices.map(element => element.time).reverse();
+                let label = data.__data.response.data.prices.map(element => this._computeDateTime(element.time)).reverse();
                 let price = data.__data.response.data.prices.map(element => element.price).reverse();
                 this._generateLineChart(label, price, code);
             }
